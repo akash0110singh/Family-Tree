@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Tree Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --bg: #f4f6fb;
+      --line-color: #cbd5e1;
+      --border-color: #e5e9f2;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+
+      --male-bg: linear-gradient(145deg, #eff6ff, #dbeafe);
+      --male-border: #bfdbfe;
+
+      --female-bg: linear-gradient(145deg, #fdf2f8, #fce7f3);
+      --female-border: #fbcfe8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 10% 10%, #e0e7ff 0%, transparent 35%),
+        radial-gradient(circle at 90% 20%, #fce7f3 0%, transparent 30%),
+        var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 28px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 12px 30px -22px rgba(15, 23, 42, 0.35);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      color: white;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      box-shadow: 0 12px 24px -12px rgba(79, 70, 229, 0.75);
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all .22s ease;
+      white-space: nowrap;
+    }
+
+    .btn-secondary {
+      color: #334155;
+      background: #fff;
+      border: 1px solid #dbe2ec;
+      box-shadow: 0 6px 16px -12px rgba(15, 23, 42, .5);
+    }
+
+    .btn-secondary:hover {
+      border-color: #b8c3d4;
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px -14px rgba(15, 23, 42, .55);
+    }
+
+    .btn-preview {
+      color: white;
+      background: linear-gradient(135deg, #4f46e5, #6d28d9);
+      box-shadow: 0 14px 26px -16px rgba(79, 70, 229, .85);
+    }
+
+    .btn-preview:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 30px -16px rgba(79, 70, 229, .9);
+    }
+
+    .btn-preview.active {
+      background: linear-gradient(135deg, #059669, #0d9488);
+      box-shadow: 0 14px 26px -16px rgba(5, 150, 105, .85);
+    }
+
+    .btn-download {
+      display: none;
+      color: white;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      box-shadow: 0 14px 26px -16px rgba(37, 99, 235, .85);
+    }
+
+    .btn-download:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 30px -16px rgba(37, 99, 235, .9);
+    }
+
+    body.preview-mode .btn-download {
+      display: inline-flex;
+    }
+
+    .tree-container {
+      flex: 1;
+      overflow: auto;
+      padding: 46px 24px 70px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .tree ul {
+      padding-top: 34px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      transition: all .4s ease;
+    }
+
+    .tree li {
+      text-align: center;
+      list-style: none;
+      position: relative;
+      padding: 34px 14px 0;
+      transition: all .4s ease;
+    }
+
+    .tree li::before,
+    .tree li::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 50%;
+      width: 50%;
+      height: 34px;
+      border-top: 2px solid var(--line-color);
+    }
+
+    .tree li::after {
+      right: auto;
+      left: 50%;
+      border-left: 2px solid var(--line-color);
+    }
+
+    .tree li:only-child::before,
+    .tree li:only-child::after {
+      display: none;
+    }
+
+    .tree li:only-child {
+      padding-top: 0;
+    }
+
+    .tree li:first-child::before,
+    .tree li:last-child::after {
+      border: none;
+    }
+
+    .tree li:last-child::before {
+      border-right: 2px solid var(--line-color);
+      border-radius: 0 14px 0 0;
+    }
+
+    .tree li:first-child::after {
+      border-radius: 14px 0 0 0;
+    }
+
+    .tree ul ul::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 0;
+      height: 34px;
+      border-left: 2px solid var(--line-color);
+    }
+
+    .node-box {
+      display: inline-block;
+      position: relative;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow:
+        0 24px 50px -30px rgba(15, 23, 42, .38),
+        0 8px 20px -16px rgba(15, 23, 42, .22);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+    .node-box:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 30px 60px -30px rgba(15, 23, 42, .45),
+        0 12px 24px -16px rgba(15, 23, 42, .25);
+    }
+
+    .couple-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      position: relative;
+    }
+
+    .couple-wrapper.has-spouse::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 34px;
+      height: 2px;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(90deg, #93c5fd, #f9a8d4);
+      border-radius: 2px;
+    }
+
+    .couple-wrapper.has-spouse::after {
+      content: '♥';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      color: #e11d48;
+      background: #fff;
+      border: 1px solid #ffe4e6;
+      border-radius: 50%;
+      box-shadow: 0 5px 12px -6px rgba(225, 29, 72, .55);
+      z-index: 2;
+    }
+
+    .person-card {
+      width: 158px;
+      padding: 14px 12px 12px;
+      text-align: center;
+      border-radius: 17px;
+      position: relative;
+      transition: all .22s ease;
+    }
+
+    .person-card.male {
+      background: var(--male-bg);
+      border: 1px solid var(--male-border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85);
+    }
+
+    .person-card.female {
+      background: var(--female-bg);
+      border: 1px solid var(--female-border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85);
+    }
+
+    .avatar {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 10px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      font-size: 30px;
+      line-height: 1;
+      background: rgba(255, 255, 255, .82);
+      border: 1px solid rgba(15, 23, 42, .08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .9),
+        0 12px 20px -14px rgba(15, 23, 42, .5);
+    }
+
+    .person-card input[type="text"] {
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .78);
+      font-size: .84rem;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: center;
+      outline: none;
+      transition: all .2s ease;
+    }
+
+    .person-card input[type="text"]:focus {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, .13);
+    }
+
+    .add-spouse-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px dashed #c7d0dd;
+      background: rgba(255, 255, 255, .8);
+      color: #64748b;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all .22s ease;
+    }
+
+    .add-spouse-btn:hover {
+      color: var(--primary);
+      border-color: #a5b4fc;
+      background: var(--primary-soft);
+      transform: scale(1.06);
+    }
+
+    .remove-spouse-btn {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      width: 21px;
+      height: 21px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 6px 14px -7px rgba(239, 68, 68, .85);
+      transition: transform .2s ease;
+    }
+
+    .remove-spouse-btn:hover {
+      transform: scale(1.14);
+      background: #dc2626;
+    }
+
+    .child-actions {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-child {
+      padding: 7px 11px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-size: .73rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .2s ease;
+    }
+
+    .btn-add-son {
+      color: #075985;
+      background: #e0f2fe;
+      border-color: #bae6fd;
+    }
+
+    .btn-add-son:hover {
+      background: #bae6fd;
+      transform: translateY(-1px);
+    }
+
+    .btn-add-daughter {
+      color: #9d174d;
+      background: #fce7f3;
+      border-color: #fbcfe8;
+    }
+
+    .btn-add-daughter:hover {
+      background: #fbcfe8;
+      transform: translateY(-1px);
+    }
+
+    .btn-remove-node {
+      width: 100%;
+      margin-top: 10px;
+      padding: 6px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: .71rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all .2s ease;
+    }
+
+    .btn-remove-node:hover {
+      color: #dc2626;
+      background: #fef2f2;
+    }
+
+    .spouse-container {
+      position: relative;
+    }
+
+    body.preview-mode .add-spouse-btn,
+    body.preview-mode .remove-spouse-btn,
+    body.preview-mode .child-actions,
+    body.preview-mode .btn-remove-node {
+      display: none !important;
+    }
+
+    body.preview-mode .person-card input[type="text"] {
+      border-color: transparent;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    .download-loading {
+      pointer-events: none;
+      opacity: .7;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 14px 16px;
+      }
+
+      .brand-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 19px;
+      }
+
+      .brand-text h1 {
+        font-size: 1rem;
+      }
+
+      .brand-text p {
+        display: none;
+      }
+
+      .btn {
+        padding: 9px 13px;
+        font-size: .76rem;
+      }
+
+      .tree-container {
+        padding: 30px 12px 60px;
+      }
+
+      .person-card {
+        width: 132px;
+      }
+
+      .couple-wrapper {
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🌳</div>
+      <div class="brand-text">
+        <h1>Family Tree Builder</h1>
+        <p>Create, edit and organize your family connections</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-preview" id="previewBtn" onclick="togglePreview()">👁️ Preview</button>
+      <button class="btn btn-download" id="downloadBtn" onclick="downloadTree()">⬇️ Download</button>
+      <button class="btn btn-secondary" onclick="resetDefaultTree()">🔄 Default Tree</button>
+    </div>
+  </header>
+
+  <div class="tree-container">
+    <div class="tree" id="treeRoot"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'familyTreeData_pro';
+    let previewMode = false;
+
+    const defaultData = {
+      id: "node-root",
+      primary: { name: "Grand Father", gender: "male" },
+      spouse: { name: "Grand Mother", gender: "female" },
+      children: []
+    };
+
+    let familyData = loadTree();
+
+    function saveTree() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(familyData));
+    }
+
+    function loadTree() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Storage error", e);
+        }
+      }
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function resetDefaultTree() {
+      if (confirm('Do you want to reset the family tree to the default Grand Parents layout?')) {
+        familyData = JSON.parse(JSON.stringify(defaultData));
+        saveTree();
+        renderTree();
+      }
+    }
+
+    function togglePreview() {
+      previewMode = !previewMode;
+      document.body.classList.toggle('preview-mode', previewMode);
+
+      const btn = document.getElementById('previewBtn');
+      btn.classList.toggle('active', previewMode);
+      btn.innerHTML = previewMode ? '✏️ Edit Mode' : '👁️ Preview';
+    }
+
+    async function downloadTree() {
+      const tree = document.getElementById('treeRoot');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      try {
+        downloadBtn.classList.add('download-loading');
+        downloadBtn.innerHTML = '⏳ Downloading...';
+
+        const canvas = await html2canvas(tree, {
+          backgroundColor: '#f4f6fb',
+          scale: 2,
+          useCORS: true
+        });
+
+        const link = document.createElement('a');
+        link.download = 'family-tree.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Download failed:', error);
+        alert('Sorry, the family tree could not be downloaded.');
+      } finally {
+        downloadBtn.classList.remove('download-loading');
+        downloadBtn.innerHTML = '⬇️ Download';
+      }
+    }
+
+    function renderTree() {
+      const container = document.getElementById('treeRoot');
+      container.innerHTML = '';
+      const ul = document.createElement('ul');
+      ul.appendChild(createNodeElement(familyData, true));
+      container.appendChild(ul);
+      saveTree();
+    }
+
+    function createNodeElement(node, isRoot = false) {
+      const li = document.createElement('li');
+
+      const box = document.createElement('div');
+      box.className = 'node-box';
+
+      const coupleWrapper = document.createElement('div');
+      coupleWrapper.className = `couple-wrapper ${node.spouse ? 'has-spouse' : ''}`;
+
+      const primaryCard = createPersonCard(node.primary, (newName) => {
+        node.primary.name = newName;
+        saveTree();
+      });
+      coupleWrapper.appendChild(primaryCard);
+
+      if (node.spouse) {
+        const spouseCard = createPersonCard(node.spouse, (newName) => {
+          node.spouse.name = newName;
+          saveTree();
+        });
+
+        const delSpouseBtn = document.createElement('button');
+        delSpouseBtn.className = 'remove-spouse-btn';
+        delSpouseBtn.innerHTML = '✕';
+        delSpouseBtn.title = 'Remove Spouse';
+        delSpouseBtn.onclick = () => {
+          node.spouse = null;
+          renderTree();
+        };
+
+        const spouseContainer = document.createElement('div');
+        spouseContainer.className = 'spouse-container';
+        spouseContainer.appendChild(spouseCard);
+        spouseContainer.appendChild(delSpouseBtn);
+
+        coupleWrapper.appendChild(spouseContainer);
+      } else {
+        const addSpouseBtn = document.createElement('button');
+        addSpouseBtn.className = 'add-spouse-btn';
+        addSpouseBtn.innerHTML = '+';
+        addSpouseBtn.title = 'Add Spouse';
+        addSpouseBtn.onclick = () => {
+          const oppositeGender = node.primary.gender === 'male' ? 'female' : 'male';
+          node.spouse = {
+            name: oppositeGender === 'female' ? 'Wife' : 'Husband',
+            gender: oppositeGender
+          };
+          renderTree();
+        };
+        coupleWrapper.appendChild(addSpouseBtn);
+      }
+
+      box.appendChild(coupleWrapper);
+
+      const childActions = document.createElement('div');
+      childActions.className = 'child-actions';
+
+      const addSonBtn = document.createElement('button');
+      addSonBtn.className = 'btn-child btn-add-son';
+      addSonBtn.innerHTML = '+ Son';
+      addSonBtn.onclick = () => addChild(node, 'male');
+
+      const addDaughterBtn = document.createElement('button');
+      addDaughterBtn.className = 'btn-child btn-add-daughter';
+      addDaughterBtn.innerHTML = '+ Daughter';
+      addDaughterBtn.onclick = () => addChild(node, 'female');
+
+      childActions.appendChild(addSonBtn);
+      childActions.appendChild(addDaughterBtn);
+      box.appendChild(childActions);
+
+      if (!isRoot) {
+        const removeNodeBtn = document.createElement('button');
+        removeNodeBtn.className = 'btn-remove-node';
+        removeNodeBtn.innerText = '🗑️ Remove Member';
+        removeNodeBtn.onclick = () => removeNode(familyData, node.id);
+        box.appendChild(removeNodeBtn);
+      }
+
+      li.appendChild(box);
+
+      if (node.children && node.children.length > 0) {
+        const childrenUl = document.createElement('ul');
+        node.children.forEach(child => {
+          childrenUl.appendChild(createNodeElement(child));
+        });
+        li.appendChild(childrenUl);
+      }
+
+      return li;
+    }
+
+    function createPersonCard(person, onNameChange) {
+      const card = document.createElement('div');
+      card.className = `person-card ${person.gender}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.innerText = person.gender === 'male' ? '👨🏻' : '👩🏻';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = person.name;
+      nameInput.oninput = (e) => {
+        onNameChange(e.target.value);
+      };
+
+      card.appendChild(avatar);
+      card.appendChild(nameInput);
+
+      return card;
+    }
+
+    function addChild(parentNode, gender) {
+      if (!parentNode.children) parentNode.children = [];
+      const newId = 'node-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      parentNode.children.push({
+        id: newId,
+        primary: {
+          name: gender === 'male' ? 'Son Name' : 'Daughter Name',
+          gender: gender
+        },
+        spouse: null,
+        children: []
+      });
+      renderTree();
+    }
+
+    function removeNode(current, targetId) {
+      if (!current.children) return false;
+      const index = current.children.findIndex(c => c.id === targetId);
+      if (index !== -1) {
+        current.children.splice(index, 1);
+        renderTree();
+        return true;
+      }
+      for (let child of current.children) {
+        if (removeNode(child, targetId)) return true;
+      }
+      return false;
+    }
+
+    renderTree();
+  </script>
+</body>
+</html>
